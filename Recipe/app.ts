@@ -4,6 +4,7 @@ enum ProducerCategory {
     AssemblingMachine,
     ChemicalPlant,
     Furnace,
+    RocketSilo,
 }
 
 class Module {
@@ -34,6 +35,9 @@ class Producer {
         else if (item.equals(Item.ElectricFurnace)) {
             this._baseCraftingSpeed = 2.0;
         }
+        else if (item.equals(Item.RocketSilo)) {
+            this._baseCraftingSpeed = 1.0;
+        }
     }
 
     public get item(): Item { return this._item; }
@@ -52,49 +56,69 @@ enum ItemCategory {
 
 /** 一つのアイテムを表します。 */
 class Item {
-    _name: string;
-    _label: string;
-    _category: ItemCategory;
+    private _name: string;
+    private _label: string;
+    private _category: ItemCategory;
+    private _sortOrder: number;
 
-    private constructor(name: string, label: string, category: ItemCategory) {
+    private constructor(name: string, label: string, category: ItemCategory, sortOrder: number) {
         this._name = name;
         this._label = label;
         this._category = category;
+        this._sortOrder = sortOrder;
     }
 
-    get name(): string { return this._name; }
-    get label(): string { return this._label; }
+    public get name(): string { return this._name; }
+    public get label(): string { return this._label; }
+    public get sortOrder(): number { return this._sortOrder; }
 
-    equals(other: Item): boolean {
+    public equals(other: Item): boolean {
         return this.name == other.name;
     }
 
-    public static readonly IronOre              = new Item('IronOre'             , '鉄鉱石'             , ItemCategory.Resource)
-    public static readonly IronPlate            = new Item('IronPlate'           , '鉄板'               , ItemCategory.Intermediate)
-    public static readonly AdvancedCircuit      = new Item('AdvancedCircuit'     , '発展基板'           , ItemCategory.Intermediate)
-    public static readonly CopperCable          = new Item('CopperCable'         , '銅線'               , ItemCategory.Intermediate)
-    public static readonly ElectronicCircuit    = new Item('ElectronicCircuit'   , '電子基板'           , ItemCategory.Intermediate)
-    public static readonly PlasticBar           = new Item('PlasticBar'          , 'プラスチック棒'     , ItemCategory.Intermediate)
-    public static readonly CopperPlate          = new Item('CopperPlate'         , '銅板'               , ItemCategory.Intermediate)
-    public static readonly Coal                 = new Item('Coal'                , '石炭'               , ItemCategory.Resource)
-    public static readonly PetroleumGas         = new Item('PetroleumGas'        , 'プロパンガス'       , ItemCategory.Intermediate)
-    public static readonly LowDensityStructure  = new Item('LowDensityStructure' , '断熱材'             , ItemCategory.Intermediate)
-    public static readonly SteelPlate           = new Item('SteelPlate'          , '鋼材'               , ItemCategory.Intermediate)
-    public static readonly RocketFuel           = new Item('RocketFuel'          , 'ロケット燃料'       , ItemCategory.Intermediate)
-    public static readonly SolidFuel            = new Item('SolidFuel'           , '固形燃料'           , ItemCategory.Intermediate)
-    public static readonly LightOil             = new Item('LightOil'            , '軽油'               , ItemCategory.Intermediate)
-    public static readonly RocketControlUnit    = new Item('RocketControlUnit'   , 'ロケット制御装置'   , ItemCategory.Intermediate)
-    public static readonly ProcessingUnit       = new Item('ProcessingUnit'      , '制御基板'           , ItemCategory.Intermediate)
-    public static readonly SpeedModule1         = new Item('SpeedModule1'        , '生産速度モジュール1', ItemCategory.Production)
-    public static readonly SulfuricAcid         = new Item('SulfuricAcid'        , '硫酸'               , ItemCategory.Intermediate)
-    public static readonly Sulfur               = new Item('Sulfur'              , '硫黄'               , ItemCategory.Intermediate)
-    public static readonly Water                = new Item('Water'               , '水'                 , ItemCategory.Intermediate)
+    private static _all: Item[] = []
 
-    public static readonly AssemblingMachine1   = new Item('AssemblingMachine1'  , '組立機1'            , ItemCategory.Production)
-    public static readonly AssemblingMachine2   = new Item('AssemblingMachine2'  , '組立機2'            , ItemCategory.Production)
-    public static readonly AssemblingMachine3   = new Item('AssemblingMachine3'  , '組立機3'            , ItemCategory.Production)
-    public static readonly ElectricFurnace      = new Item('ElectricFurnace'     , '電気炉'             , ItemCategory.Production)
-    public static readonly ChemicalPlant        = new Item('ChemicalPlant'       , '化学プラント'       , ItemCategory.Production)
+    private static def(name: string, label: string, category: ItemCategory): Item {
+        let item = new Item(name, label, category, Item._all.length);
+        Item._all.push(item);
+        return item;
+    }
+
+    public static readonly ElectricFurnace      = Item.def('ElectricFurnace'     , '電気炉'             , ItemCategory.Production)
+
+    public static readonly AssemblingMachine1   = Item.def('AssemblingMachine1'  , '組立機1'            , ItemCategory.Production)
+    public static readonly AssemblingMachine2   = Item.def('AssemblingMachine2'  , '組立機2'            , ItemCategory.Production)
+    public static readonly AssemblingMachine3   = Item.def('AssemblingMachine3'  , '組立機3'            , ItemCategory.Production)
+    public static readonly ChemicalPlant        = Item.def('ChemicalPlant'       , '化学プラント'       , ItemCategory.Production)
+
+    public static readonly SpeedModule1         = Item.def('SpeedModule1'        , '生産速度モジュール1', ItemCategory.Production)
+
+    public static readonly IronOre              = Item.def('IronOre'             , '鉄鉱石'             , ItemCategory.Resource)
+    public static readonly LightOil             = Item.def('LightOil'            , '軽油'               , ItemCategory.Intermediate)
+    public static readonly PetroleumGas         = Item.def('PetroleumGas'        , 'プロパンガス'       , ItemCategory.Intermediate)
+    public static readonly SulfuricAcid         = Item.def('SulfuricAcid'        , '硫酸'               , ItemCategory.Intermediate)
+    public static readonly SolidFuel            = Item.def('SolidFuel'           , '固形燃料'           , ItemCategory.Intermediate)
+    public static readonly Water                = Item.def('Water'               , '水'                 , ItemCategory.Intermediate)
+
+    public static readonly Coal                 = Item.def('Coal'                , '石炭'               , ItemCategory.Resource)
+    public static readonly IronPlate            = Item.def('IronPlate'           , '鉄板'               , ItemCategory.Intermediate)
+    public static readonly CopperPlate          = Item.def('CopperPlate'         , '銅板'               , ItemCategory.Intermediate)
+    public static readonly SteelPlate           = Item.def('SteelPlate'          , '鋼材'               , ItemCategory.Intermediate)
+    public static readonly Sulfur               = Item.def('Sulfur'              , '硫黄'               , ItemCategory.Intermediate)
+    public static readonly PlasticBar           = Item.def('PlasticBar'          , 'プラスチック棒'     , ItemCategory.Intermediate)
+
+    public static readonly CopperCable          = Item.def('CopperCable'         , '銅線'               , ItemCategory.Intermediate)
+    public static readonly ElectronicCircuit    = Item.def('ElectronicCircuit'   , '電子基板'           , ItemCategory.Intermediate)
+    public static readonly AdvancedCircuit      = Item.def('AdvancedCircuit'     , '発展基板'           , ItemCategory.Intermediate)
+    public static readonly ProcessingUnit       = Item.def('ProcessingUnit'      , '制御基板'           , ItemCategory.Intermediate)
+
+    public static readonly LowDensityStructure  = Item.def('LowDensityStructure' , '断熱材'             , ItemCategory.Intermediate)
+    public static readonly RocketFuel           = Item.def('RocketFuel'          , 'ロケット燃料'       , ItemCategory.Intermediate)
+    public static readonly RocketControlUnit    = Item.def('RocketControlUnit'   , 'ロケット制御装置'   , ItemCategory.Intermediate)
+    public static readonly RocketPart           = Item.def('RocketPart'          , 'ロケットパーツ'     , ItemCategory.Intermediate)
+
+    public static readonly RocketSilo           = Item.def('RocketSilo'          , 'ロケットサイロ'     , ItemCategory.Combat)
+    public static readonly Rocket               = Item.def('Rocket'              , 'ロケット'           , ItemCategory.Combat)
 }
 
 /** 材料になるアイテムと個数のペアを表します。 */
@@ -188,20 +212,23 @@ class Recipe {
         var C = [ProducerCategory.ChemicalPlant];
         // Furnace only
         var F = [ProducerCategory.Furnace];
+        var R = [ProducerCategory.RocketSilo]
 
-        //r( Item.IronPlate          , 1,  3.5, F, m(Item.IronOre            ,  1)                                                                   )
-        r( Item.AdvancedCircuit    , 1,  6  , H, m(Item.CopperCable        ,  4), m(Item.ElectronicCircuit  ,  2), m(Item.PlasticBar         ,  2) )
-        r( Item.CopperCable        , 2,  0.5, H, m(Item.CopperPlate        ,  1)                                                                   )
-        r( Item.ElectronicCircuit  , 1,  0.5, H, m(Item.CopperCable        ,  3), m(Item.IronPlate          ,  1)                                  )
-        r( Item.PlasticBar         , 2,  1  , C, m(Item.Coal               ,  1), m(Item.PetroleumGas       , 20)                                  )
-        r( Item.LowDensityStructure, 1, 30  , H, m(Item.CopperPlate        ,  5), m(Item.PlasticBar         ,  5), m(Item.SteelPlate         , 10) )
-        r( Item.SteelPlate         , 1, 17.5, F, m(Item.IronPlate          ,  5)                                                                   )
-        r( Item.RocketFuel         , 1, 30  , H, m(Item.SolidFuel          , 10)                                                                   )
-        r( Item.SolidFuel          , 1,  3  , C, m(Item.LightOil           , 10)                                                                   )
-        r( Item.RocketControlUnit  , 1, 30  , H, m(Item.ProcessingUnit     ,  1), m(Item.SpeedModule1       ,  1)                                  )
-        r( Item.ProcessingUnit     , 1, 10  , H, m(Item.AdvancedCircuit    ,  2), m(Item.ElectronicCircuit  , 20), m(Item.SulfuricAcid       ,  5) )
-        r( Item.SpeedModule1       , 1, 15  , H, m(Item.AdvancedCircuit    ,  5), m(Item.ElectronicCircuit  ,  5),                                 )
-        r( Item.SulfuricAcid       ,50,  1  , C, m(Item.IronPlate          ,  1), m(Item.Sulfur             ,  5), m(Item.Water              , 100))
+        //r( Item.IronPlate          ,  1,  3.5, F, m(Item.IronOre            ,  1)                                                                   )
+        // Item                    ,  N,  sec
+        r( Item.AdvancedCircuit    ,  1,  6  , H, m(Item.CopperCable        ,  4), m(Item.ElectronicCircuit  ,  2), m(Item.PlasticBar         ,   2) )
+        r( Item.CopperCable        ,  2,  0.5, H, m(Item.CopperPlate        ,  1)                                                                    )
+        r( Item.ElectronicCircuit  ,  1,  0.5, H, m(Item.CopperCable        ,  3), m(Item.IronPlate          ,  1)                                   )
+        r( Item.PlasticBar         ,  2,  1  , C, m(Item.Coal               ,  1), m(Item.PetroleumGas       , 20)                                   )
+        r( Item.LowDensityStructure,  1, 30  , H, m(Item.CopperPlate        ,  5), m(Item.PlasticBar         ,  5), m(Item.SteelPlate         ,  10) )
+        r( Item.SteelPlate         ,  1, 17.5, F, m(Item.IronPlate          ,  5)                                                                    )
+        r( Item.RocketFuel         ,  1, 30  , H, m(Item.SolidFuel          , 10)                                                                    )
+        r( Item.SolidFuel          ,  1,  3  , C, m(Item.LightOil           , 10)                                                                    )
+        r( Item.RocketControlUnit  ,  1, 30  , H, m(Item.ProcessingUnit     ,  1), m(Item.SpeedModule1       ,  1)                                   )
+        r( Item.ProcessingUnit     ,  1, 10  , H, m(Item.AdvancedCircuit    ,  2), m(Item.ElectronicCircuit  , 20), m(Item.SulfuricAcid       ,   5) )
+        r( Item.SpeedModule1       ,  1, 15  , H, m(Item.AdvancedCircuit    ,  5), m(Item.ElectronicCircuit  ,  5),                                  )
+        r( Item.SulfuricAcid       , 50,  1  , C, m(Item.IronPlate          ,  1), m(Item.Sulfur             ,  5), m(Item.Water              , 100) )
+        r( Item.RocketPart         ,  1,  3  , R, m(Item.LowDensityStructure, 10), m(Item.RocketControlUnit  , 10), m(Item.RocketFuel         ,  10) )
     }
 }
 
@@ -232,6 +259,9 @@ class CalculationSettings {
         else if (0 <= recipe.producers.indexOf(ProducerCategory.Furnace)) {
             return new Producer(Item.ElectricFurnace);
         }
+        else if (0 <= recipe.producers.indexOf(ProducerCategory.RocketSilo)) {
+            return new Producer(Item.RocketSilo);
+        }
         else {
             return null;
         }
@@ -252,7 +282,6 @@ class RecipeNode {
 
     private _maxDepth: number;
     private _maxBreadth: number;
-
 
     protected constructor(product: Item, needNumber: number, numberPerSecond: number, settings: CalculationSettings) {
         this._product = product;
@@ -377,7 +406,7 @@ class TotalTableRow {
 /**
  * RecipeGraph に含まれる要素の総計。
  */
-class TotalTable {
+class TotalTable implements Iterable<TotalTableRow> {
     private _rows: TotalTableRow[];
 
     public constructor(graph: RecipeGraph) {
@@ -401,8 +430,39 @@ class TotalTable {
             const stat = stats[itemName];
             this._rows.push(new TotalTableRow(stat[0], stat[1], stat[2], stat[3]));
         }
+
+        this._rows.sort((a, b) => {
+            if (a.item.sortOrder < b.item.sortOrder) {
+                return -1;
+            }
+            if (a.item.sortOrder > b.item.sortOrder) {
+                return 1;
+            }
+            return 0;
+        });
     }
 
+    [Symbol.iterator]() {
+        let index = 0;
+        let rows = this._rows;
+        
+        return {
+            next(): IteratorResult<TotalTableRow> {
+                if (index < rows.length) {
+                    return {
+                        done: false,
+                        value: rows[index++]
+                    }
+                }
+                else {
+                    return {
+                        done: true,
+                        value: null
+                    }
+                }
+            }
+        }
+    }
 }
 
 /**
@@ -451,23 +511,12 @@ class Greeter {
     start() {
         //this.timerToken = setInterval(() => this.span.innerHTML = new Date().toUTCString(), 500);
 
-        let graph = new RecipeGraph(Item.RocketControlUnit, 0.5, new CalculationSettings);
-
-        // [0]: アイテム、[1]: 秒間必要数、[2]: 必要組立機数
-        let stats: { [itemName: string]: [Item, number, number] } = {}
-        graph.visitDepthFirst((node: RecipeNode, depth: number) => {
-            if (!stats[node.product.name]) {
-                stats[node.product.name] = [node.product, node.numberPerSecond, node.numProducers];
-            }
-            else {
-                stats[node.product.name][1] += node.numberPerSecond;
-                stats[node.product.name][2] += node.numProducers;
-            }
-        });
+        let graph = new RecipeGraph(Item.RocketPart, 0.05, new CalculationSettings);
 
         // 生産時間と生産数を表示するか？
         const showDetails = false;
 
+        // グラフ
         {
             let table = document.createElement('table');
             this.element.appendChild(table);
@@ -561,7 +610,10 @@ class Greeter {
             });
         }
 
+        // 総計
         {
+            const total = new TotalTable(graph);
+
             let table = document.createElement('table');
             this.element.appendChild(table);
 
@@ -574,12 +626,11 @@ class Greeter {
             }
 
             let tBody = table.createTBody();
-            for (const itemName in stats) {
-                const stat = stats[itemName];
+            for (const totalRow of total) {
                 let row = tBody.insertRow();
-                row.insertCell().appendChild(createImageOfItemIcon(stat[0]));
-                row.insertCell().innerText = formatNumber(stat[1], 2);
-                row.insertCell().innerText = formatNumber(stat[2], 2);
+                row.insertCell().appendChild(createImageOfItemIcon(totalRow.item));
+                row.insertCell().innerText = formatNumber(totalRow.numberPerSecond, 2);
+                row.insertCell().innerText = formatNumber(totalRow.numProducers, 2);
             }
         }
     }

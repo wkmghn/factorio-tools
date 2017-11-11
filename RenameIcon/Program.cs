@@ -12,7 +12,7 @@ namespace RenameIcon
     {
         static void Main(string[] args)
         {
-            string path = @"G:\data\Documents\Visual Studio 2017\Projects\Factorio\Recipe\images\item-icons";
+            string path = @"G:\data\Documents\GitHub\factorio-tools\Recipe\images\item-icons";
             foreach (string filename in Directory.EnumerateFiles(path))
             {
                 string s = Path.GetFileName(filename);
