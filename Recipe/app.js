@@ -6,12 +6,10 @@ var ProducerCategory;
     ProducerCategory[ProducerCategory["Furnace"] = 3] = "Furnace";
     ProducerCategory[ProducerCategory["RocketSilo"] = 4] = "RocketSilo";
 })(ProducerCategory || (ProducerCategory = {}));
-class Module {
-}
 class Producer {
-    constructor(item) {
+    constructor(item, modules = []) {
         this._item = item;
-        this._modules = [];
+        this._modules = modules;
         if (item.equals(Item.AssemblingMachine1)) {
             this._baseCraftingSpeed = 0.5;
         }
@@ -30,10 +28,19 @@ class Producer {
         else if (item.equals(Item.RocketSilo)) {
             this._baseCraftingSpeed = 1.0;
         }
+        else {
+            throw Error();
+        }
+        let speedPercent = 0;
+        for (const module of modules) {
+            speedPercent += module.speedPercent;
+        }
+        this._craftingSpeed = this._baseCraftingSpeed * ((100 + speedPercent) / 100);
     }
     get item() { return this._item; }
     get baseCraftingSpeed() { return this._baseCraftingSpeed; }
-    get craftingSpeed() { return this.baseCraftingSpeed; }
+    get craftingSpeed() { return this._craftingSpeed; }
+    get modules() { return this._modules; }
 }
 var ItemCategory;
 (function (ItemCategory) {
@@ -63,12 +70,15 @@ class Item {
     }
 }
 Item._all = [];
+Item.SolarPanel = Item.def('SolarPanel', 'ソーラーパネル', ItemCategory.Production);
+Item.Accumulator = Item.def('Accumulator', '蓄電池', ItemCategory.Production);
 Item.ElectricFurnace = Item.def('ElectricFurnace', '電気炉', ItemCategory.Production);
 Item.AssemblingMachine1 = Item.def('AssemblingMachine1', '組立機1', ItemCategory.Production);
 Item.AssemblingMachine2 = Item.def('AssemblingMachine2', '組立機2', ItemCategory.Production);
 Item.AssemblingMachine3 = Item.def('AssemblingMachine3', '組立機3', ItemCategory.Production);
 Item.ChemicalPlant = Item.def('ChemicalPlant', '化学プラント', ItemCategory.Production);
 Item.SpeedModule1 = Item.def('SpeedModule1', '生産速度モジュール1', ItemCategory.Production);
+Item.ProductivityModule3 = Item.def('ProductivityModule3', '生産効率モジュール3', ItemCategory.Production);
 Item.IronOre = Item.def('IronOre', '鉄鉱石', ItemCategory.Resource);
 Item.LightOil = Item.def('LightOil', '軽油', ItemCategory.Intermediate);
 Item.PetroleumGas = Item.def('PetroleumGas', 'プロパンガス', ItemCategory.Intermediate);
@@ -82,15 +92,31 @@ Item.SteelPlate = Item.def('SteelPlate', '鋼材', ItemCategory.Intermediate);
 Item.Sulfur = Item.def('Sulfur', '硫黄', ItemCategory.Intermediate);
 Item.PlasticBar = Item.def('PlasticBar', 'プラスチック棒', ItemCategory.Intermediate);
 Item.CopperCable = Item.def('CopperCable', '銅線', ItemCategory.Intermediate);
+Item.IronGearWheel = Item.def('IronGearWheel', '歯車', ItemCategory.Intermediate);
 Item.ElectronicCircuit = Item.def('ElectronicCircuit', '電子基板', ItemCategory.Intermediate);
 Item.AdvancedCircuit = Item.def('AdvancedCircuit', '発展基板', ItemCategory.Intermediate);
 Item.ProcessingUnit = Item.def('ProcessingUnit', '制御基板', ItemCategory.Intermediate);
+Item.Battery = Item.def('Battery', '電池', ItemCategory.Intermediate);
 Item.LowDensityStructure = Item.def('LowDensityStructure', '断熱材', ItemCategory.Intermediate);
 Item.RocketFuel = Item.def('RocketFuel', 'ロケット燃料', ItemCategory.Intermediate);
 Item.RocketControlUnit = Item.def('RocketControlUnit', 'ロケット制御装置', ItemCategory.Intermediate);
+Item.Satellite = Item.def('Satellite', '人工衛星', ItemCategory.Intermediate);
 Item.RocketPart = Item.def('RocketPart', 'ロケットパーツ', ItemCategory.Intermediate);
 Item.RocketSilo = Item.def('RocketSilo', 'ロケットサイロ', ItemCategory.Combat);
+Item.Radar = Item.def('Radar', 'レーダー', ItemCategory.Combat);
 Item.Rocket = Item.def('Rocket', 'ロケット', ItemCategory.Combat);
+Item._ = Item.def('_', '_', ItemCategory.Production);
+class Module {
+    constructor(item, speedPercent, productivityPercent) {
+        this._item = item;
+        this._speedPercent = speedPercent;
+        this._productivityPercent = productivityPercent;
+    }
+    get item() { return this._item; }
+    get speedPercent() { return this._speedPercent; }
+}
+Module.SpeedModule1 = new Module(Item.SpeedModule1, 20, 0);
+Module.ProductivityModule3 = new Module(Item.ProductivityModule3, -15, 10);
 class Material {
     constructor(item, number) {
         this._item = item;
@@ -157,25 +183,24 @@ class Recipe {
         r(Item.SpeedModule1, 1, 15, H, m(Item.AdvancedCircuit, 5), m(Item.ElectronicCircuit, 5));
         r(Item.SulfuricAcid, 50, 1, C, m(Item.IronPlate, 1), m(Item.Sulfur, 5), m(Item.Water, 100));
         r(Item.RocketPart, 1, 3, R, m(Item.LowDensityStructure, 10), m(Item.RocketControlUnit, 10), m(Item.RocketFuel, 10));
+        r(Item.Rocket, 1, 1, R, m(Item.RocketPart, 100), m(Item.Satellite, 1));
+        r(Item.Satellite, 1, 3, H, m(Item.Accumulator, 100), m(Item.LowDensityStructure, 100), m(Item.ProcessingUnit, 100), m(Item.Radar, 5), m(Item.RocketFuel, 50), m(Item.SolarPanel, 100));
+        r(Item.Accumulator, 1, 10, H, m(Item.Battery, 5), m(Item.IronPlate, 2));
+        r(Item.Battery, 1, 5, C, m(Item.CopperPlate, 1), m(Item.IronPlate, 1), m(Item.SulfuricAcid, 20));
+        r(Item.SolarPanel, 1, 10, H, m(Item.CopperPlate, 5), m(Item.ElectronicCircuit, 15), m(Item.SteelPlate, 5));
+        r(Item.Radar, 1, 0.5, H, m(Item.ElectronicCircuit, 5), m(Item.IronGearWheel, 5), m(Item.IronPlate, 10));
+        r(Item.Sulfur, 2, 1, C, m(Item.PetroleumGas, 30), m(Item.Water, 30));
     }
 }
 Recipe._map = undefined;
 class CalculationSettings {
-    getProductionSpeed(recipe) {
-        if (0 <= recipe.producers.indexOf(ProducerCategory.AssemblingMachine)) {
-            return 0.75;
-        }
-        else if (0 <= recipe.producers.indexOf(ProducerCategory.ChemicalPlant)) {
-            return 1.25;
-        }
-        else if (0 <= recipe.producers.indexOf(ProducerCategory.Furnace)) {
-            return 2.0;
-        }
-        else {
-            return 1.0;
-        }
+    constructor(producerMap) {
+        this._producerMap = producerMap;
     }
     getProducer(recipe) {
+        if (this._producerMap && this._producerMap.has(recipe.product)) {
+            return this._producerMap.get(recipe.product);
+        }
         if (0 <= recipe.producers.indexOf(ProducerCategory.AssemblingMachine)) {
             return new Producer(Item.AssemblingMachine3);
         }
@@ -334,18 +359,58 @@ function formatNumber(n, maxFractionDigits) {
     }
     return s;
 }
-function createImageOfItemIcon(item) {
+var IconSize;
+(function (IconSize) {
+    IconSize[IconSize["Small"] = 0] = "Small";
+    IconSize[IconSize["Medium"] = 1] = "Medium";
+})(IconSize || (IconSize = {}));
+function createImageOfItemIcon(item, iconSize = IconSize.Medium) {
     let img = document.createElement("img");
     img.src = "images/item-icons/" + item.name + ".png";
-    img.width = 25;
+    img.width = (iconSize == IconSize.Medium) ? 25 : 16;
+    img.alt = item.label;
     return img;
+}
+function createElementOfItems(item, numItems) {
+    let div = document.createElement("div");
+    let img = createImageOfItemIcon(item);
+    div.appendChild(img);
+    img.style.verticalAlign = "middle";
+    let p = document.createElement("div");
+    div.appendChild(p);
+    p.style.display = "inline-block";
+    p.style.verticalAlign = "middle";
+    p.style.marginLeft = "0.25em";
+    p.innerText = "×" + formatNumber(numItems, 2);
+    return div;
+}
+function createElementOfProducers(producer, numProducers) {
+    let div = document.createElement("div");
+    let img = createImageOfItemIcon(producer.item);
+    div.appendChild(img);
+    img.style.verticalAlign = "middle";
+    for (const module of producer.modules) {
+        let img = createImageOfItemIcon(module.item, IconSize.Small);
+        div.appendChild(img);
+    }
+    let p = document.createElement("div");
+    div.appendChild(p);
+    p.style.display = "inline-block";
+    p.style.verticalAlign = "middle";
+    p.style.marginLeft = "0.25em";
+    p.innerText = "×" + formatNumber(numProducers, 2);
+    return div;
 }
 class Greeter {
     constructor(element) {
         this.element = element;
     }
     start() {
-        let graph = new RecipeGraph(Item.RocketPart, 0.05, new CalculationSettings);
+        let graph = new RecipeGraph(Item.Rocket, 1 / 2000, new CalculationSettings(new Map([
+            [Item.LowDensityStructure, new Producer(Item.AssemblingMachine3, [Module.ProductivityModule3, Module.ProductivityModule3, Module.ProductivityModule3, Module.ProductivityModule3])],
+            [Item.RocketControlUnit, new Producer(Item.AssemblingMachine3, [Module.ProductivityModule3, Module.ProductivityModule3, Module.ProductivityModule3, Module.ProductivityModule3])],
+            [Item.RocketFuel, new Producer(Item.AssemblingMachine3, [Module.ProductivityModule3, Module.ProductivityModule3, Module.ProductivityModule3, Module.ProductivityModule3])],
+        ])));
         const showDetails = false;
         {
             let table = document.createElement('table');
@@ -376,14 +441,11 @@ class Greeter {
                 {
                     let cell = currentRow.insertCell();
                     cell.rowSpan = node.maxBreadth;
-                    cell.appendChild(createImageOfItemIcon(node.product));
-                    if (depth != 1) {
-                        let p = document.createElement('p');
-                        cell.appendChild(p);
-                        p.style.display = "inline-block";
-                        p.style.margin = "0";
-                        p.style.marginLeft = "0.25em";
-                        p.innerText += "×" + node.needNumber;
+                    if (depth == 1) {
+                        cell.appendChild(createImageOfItemIcon(node.product));
+                    }
+                    else {
+                        cell.appendChild(createElementOfItems(node.product, node.needNumber));
                     }
                 }
                 if (showDetails) {
@@ -416,13 +478,7 @@ class Greeter {
                     cell.rowSpan = node.maxBreadth;
                     cell.style.borderRight = "solid 2px #000";
                     if (node.producer) {
-                        cell.appendChild(createImageOfItemIcon(node.producer.item));
-                        let p = document.createElement('p');
-                        cell.appendChild(p);
-                        p.style.display = "inline-block";
-                        p.style.margin = "0";
-                        p.style.marginLeft = "0.25em";
-                        p.innerText += "×" + formatNumber(node.numProducers, 2);
+                        cell.appendChild(createElementOfProducers(node.producer, node.numProducers));
                     }
                 }
                 prevDepth = depth;
@@ -444,7 +500,12 @@ class Greeter {
                 let row = tBody.insertRow();
                 row.insertCell().appendChild(createImageOfItemIcon(totalRow.item));
                 row.insertCell().innerText = formatNumber(totalRow.numberPerSecond, 2);
-                row.insertCell().innerText = formatNumber(totalRow.numProducers, 2);
+                if (totalRow.producer) {
+                    row.insertCell().appendChild(createElementOfProducers(totalRow.producer, totalRow.numProducers));
+                }
+                else {
+                    row.insertCell();
+                }
             }
         }
     }
